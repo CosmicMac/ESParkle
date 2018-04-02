@@ -31,10 +31,10 @@ whatever the priority level).
 
 **The NeoPixel data line voltage in logic-high state has to be at least 0.7× the NeoPixel power voltage (see https://ben.artins.org/electronics/glitchy-neopixels/)*
  
-#### Wiring
+### Wiring
 ![Wiring](./doc/wiring.png)
 
-#### Enclosure
+### Enclosure
 *A reclaimed deodorant stick makes a nifty enclosure... ;)*\
 ![Enclosure](./doc/enclosure.jpg)
 
@@ -44,7 +44,7 @@ ESP8266 frequency must be set to 160MHz
 - In Arduino IDE, select `Tools->CPU Frequency->160MHz`\
 - In PlatformIO, put `board_f_cpu = 160000000L` in your `platformio.ini` file
 
-#### External libraries
+### External libraries
 - https://github.com/earlephilhower/ESP8266Audio
 - https://github.com/knolleary/pubsubclient
 - https://github.com/bblanchon/ArduinoJson
@@ -54,7 +54,7 @@ ESP8266 frequency must be set to 160MHz
   
 *See README of each library for specific installation instructions.*
 
-#### Settings
+### Settings
 - Rename `config.h.SAMPLE` into `config.h` and edit the settings to match your own configuration.
 - Depending on your needs, you may have to slightly tweak external libraries code.\
   Here is a list of what I had to change:
@@ -73,7 +73,7 @@ ESP8266 frequency must be set to 160MHz
 
 ## Interfaces
 
-#### MQTT commands
+### MQTT commands
 
 Notifications are triggered by simple JSON messages over MQTT.
 
@@ -105,7 +105,7 @@ Notifications are triggered by simple JSON messages over MQTT.
   {"gain":0.5}      => set default gain value
   {"oncegain":0.2}  => set once gain value (handy to adapt poorly encoded MP3 volume)
 ````
-#### Tap sensor
+### Tap sensor
 - 1 single tap stops current notification or, if no notification is running, plays predefined MP3 ("moo box" mode).
 - 5 taps restart ESP
 
@@ -128,7 +128,7 @@ Notifications are triggered by simple JSON messages over MQTT.
   file amongst my repository of famous movies dialogs. :)\
   For kids, animals sounds should also have some success as well.
 
-#### Useful links
+### Useful links
 - Getting started with Cloud MQTT:\
   https://www.cloudmqtt.com/docs.html
 - Getting started with AWS Polly TTS:\
@@ -138,7 +138,7 @@ Notifications are triggered by simple JSON messages over MQTT.
 - Free MP3 notification sounds:\
   https://notificationsounds.com
   
-#### Thanks
+### Thanks
 Embedded MP3 files are courtesy of https://notificationsounds.com . 
 
 Many thanks to all the authors of above libraries, and more generally to all the generous people contributing to the
@@ -147,9 +147,9 @@ ESP8266 ecosystem.
 And a special thank to @earlephilhower for making ESParkle possible, including the *essential* RTTTL player! ;)
 
 
-#### Disclaimer
+### Disclaimer
 Even if I try to improve myself, my C++ skills are very limited: I do programming like a Lego player, essentially by
-assembling bricks made by real programmers.
+assembling bricks made by real programmers.\
 You've been warned...
 
 For a real disclaimer, see the ![MIT license](https://github.com/CosmicMac/ESParkle/blob/master/LICENSE).

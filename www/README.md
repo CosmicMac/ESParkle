@@ -1,6 +1,6 @@
 # Companion scripts for ESParkle
 
-##`esparkle_mp3.php`
+##esparkle_mp3.php
 ````
 /**
  * MP3 handler
@@ -23,7 +23,7 @@
  */
 ````
 
-##`esparkle_tts.php`
+##esparkle_tts.php
 ````
 /**
  * Proxy to AWS Polly TTS service
