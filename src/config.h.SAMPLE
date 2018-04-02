@@ -1,0 +1,84 @@
+#ifndef ESPARKLE_CONFIG_H
+#define ESPARKLE_CONFIG_H
+
+//############################################################################
+// ESPARKLE VERSION
+//############################################################################
+#define ESPARKLE_VERSION "1.0"
+
+//############################################################################
+// WIFI
+//############################################################################
+#define ESP_NAME "ESParkle"                                                                     // ESP8266 host name
+
+const WifiAPlist_t AP_LIST[] = {                                                                // Access points list
+    {"YOUR_SSID_1", "YOUR_PASSPHRASE_1"},
+    {"YOUR_SSID_2", "YOUR_PASSPHRASE_2"},
+    {"YOUR_SSID_3", "YOUR_PASSPHRASE_3"}
+};
+
+//############################################################################
+// MQTT
+//############################################################################
+#define MQTT_HOST       "mXX.cloudmqtt.com"
+#define MQTT_PORT       12345
+#define MQTT_USER       "YOUR_MQTT_USER"
+#define MQTT_PASSWORD   "YOUR_MQTT_PASSWORD"
+#define MQTT_IN_TOPIC   "esparkle/in"
+#define MQTT_OUT_TOPIC  "esparkle/out"
+
+//############################################################################
+// AUDIO
+//############################################################################
+#define RANDOM_STREAM_URL "http://www.dummyhost.net/esparkle/esparkle_mp3.php?action=random"    // URL of companion PHP script for random MP3
+#define TTS_PROXY_URL "http://www.dummyhost.net/esparkle/esparkle_tts.php"                      // URL of companion PHP script for TTS
+#define TTS_PROXY_USER "YOUR_TTS_PROXY_USER"                                                    // HTTP Basic authentication user name for TTS
+#define TTS_PROXY_PASSWORD "YOUR_TTS_PROXY_PASSWORD"                                            // HTTP Basic authentication password for TTS
+
+float defaultGain = .3;
+
+//############################################################################
+// LED
+//############################################################################
+#define COLOR_ORDER  GRB         // Set GRB for WS2812B and GBR for APA102
+#define LED_TYPE     WS2812B     // APA102, WS2801 or WS2812B
+#define NUM_LEDS     3           // Number of LEDs
+uint8_t max_bright = 128;        // Default overall brightness
+
+//############################################################################
+// MPU
+//############################################################################
+#define MPU_INTERRUPT_INTERVAL_MS   750
+#define MPU_MULTITAP_INTERVAL_MS    2000
+#define MPU_MULTITAP_RESTART        5
+#define MOTION_DETECTION_THRESHOLD  10
+#define MOTION_DETECTION_DURATION   5
+
+//############################################################################
+// PINS
+//############################################################################
+/* --------+--------------+--------------------------------
+ *  D1 pin   ESP-8266 pin   Function
+ * --------+--------------+--------------------------------
+ *  TX       TXD            TXD
+ *  RX	     RXD            RXD, I2S DATA
+ *  A0	     A0             Analog input, max 3.3V input
+ *  D0	     GPIO16         IO
+ *  D1	     GPIO5          IO, SCL
+ *  D2	     GPIO4          IO, SDA
+ *  D3	     GPIO0          IO, 10k Pull-up
+ *  D4	     GPIO2          IO, I2S LRCK, 10k Pull-up
+ *  D5	     GPIO14         IO, SCK
+ *  D6	     GPIO12         IO, MISO
+ *  D7	     GPIO13         IO, MOSI
+ *  D8	     GPIO15         IO, I2S BCLK, 10k Pull-down, SS
+ *  G	     GND            Ground
+ *  5V	     -              5V
+ *  3V3	     3.3V           3.3V
+ *  RST	     RST            Reset
+ */
+
+#define MPU_INTERRUPT_PIN  D6
+#define LED_DATA_PIN       D7
+
+#endif //ESPARKLE_CONFIG_H
