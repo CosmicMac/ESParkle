@@ -116,7 +116,7 @@ Notifications are triggered by simple JSON messages over MQTT.
 - Improve stability (ESParkle may crash/restart from time to time, when playing MP3 from URL). 
 - Some code cleanup.
 
-### Tip & tricks
+### Tips & tricks
 - Define a MQTT retained message, with this simple command:
   ````
   {"mp3":"/mp3/bullfrog.mp3"}
@@ -144,7 +144,7 @@ Embedded MP3 files are courtesy of https://notificationsounds.com .
 Many thanks to all the authors of above libraries, and more generally to all the generous people contributing to the
 ESP8266 ecosystem.
 
-And a special thank to @earlephilhower for making ESParkle possible, including the *essential* RTTTL player! ;)
+And a special thank to ![@earlephilhower](https://github.com/earlephilhower) for making ESParkle possible, including the *essential* RTTTL player! ;)
 
 
 ### Disclaimer
