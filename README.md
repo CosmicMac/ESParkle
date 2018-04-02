@@ -41,7 +41,7 @@ whatever the priority level).
 ## Software
 ESParkle was tested with the 2.4.0 version of the Arduino libraries for ESP8266.\
 ESP8266 frequency must be set to 160MHz
-- In Arduino IDE, select `Tools->CPU Frequency->160MHz`\
+- In Arduino IDE, select `Tools->CPU Frequency->160MHz`
 - In PlatformIO, put `board_f_cpu = 160000000L` in your `platformio.ini` file
 
 ### External libraries
@@ -126,7 +126,7 @@ Notifications are triggered by simple JSON messages over MQTT.
 - I created ESParkle essentially to get notified of really important events I don't want to miss at work.
   Incidentally, I had great success with my colleagues when I decided that the 1 tap action would randomly pick a MP3
   file amongst my repository of famous movies dialogs. :)\
-  For kids, animals sounds should also have some success as well.
+  For kids, animals sounds should have some success as well.
 
 ### Useful links
 - Getting started with Cloud MQTT:\
