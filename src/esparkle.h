@@ -1,6 +1,8 @@
 #ifndef ESPARKLE_H
 #define ESPARKLE_H
 
+void ICACHE_RAM_ATTR ISRoutine();
+
 bool wifiConnect();
 
 void playAudio();
