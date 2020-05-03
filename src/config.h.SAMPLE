@@ -11,7 +11,7 @@
 //############################################################################
 #define ESP_NAME "ESParkle"                                                                     // ESP8266 host name
 
-const WifiAPlist_t AP_LIST[] = {                                                                // Access points list
+const WifiAPEntry AP_LIST[] = {                                                                // Access points list
     {"YOUR_SSID_1", "YOUR_PASSPHRASE_1"},
     {"YOUR_SSID_2", "YOUR_PASSPHRASE_2"},
     {"YOUR_SSID_3", "YOUR_PASSPHRASE_3"}
