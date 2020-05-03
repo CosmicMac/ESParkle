@@ -1,5 +1,3 @@
-#define ARDUINOJSON_ENABLE_PROGMEM 1
-
 #include <Arduino.h>
 #include <ESP8266WiFiMulti.h>
 #include <PubSubClient.h>
@@ -8,10 +6,6 @@
 #include <MPU6050.h>
 #include <FastLED.h>
 #include <Ticker.h>
-/*
-#include <ESP8266Spiram.h>
-#include <SD.h>
-*/
 #include <AudioFileSourceHTTPStream.h>
 #include <AudioFileSourceSPIFFS.h>
 #include <AudioFileSourcePROGMEM.h>
@@ -101,11 +95,15 @@ void setup() {
     Wire.begin();
     Serial.println(F("Initializing MPU6050..."));
     mpu.initialize();
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-    mpu.setIntMotionEnabled(true);
-    mpu.setMotionDetectionThreshold(MOTION_DETECTION_THRESHOLD);
-    mpu.setMotionDetectionDuration(MOTION_DETECTION_DURATION);
-    attachInterrupt(digitalPinToInterrupt(MPU_INTERRUPT_PIN), []() { mpuInterrupt = true; }, RISING);
+    if(mpu.testConnection()) {
+        Serial.println(F("MPU6050 connection successful"));
+        mpu.setIntMotionEnabled(true);
+        mpu.setMotionDetectionThreshold(MOTION_DETECTION_THRESHOLD);
+        mpu.setMotionDetectionDuration(MOTION_DETECTION_DURATION);
+        attachInterrupt(digitalPinToInterrupt(MPU_INTERRUPT_PIN), ISRoutine, RISING);
+    } else {
+        Serial.println(F("MPU6050 connection failed"));
+    }
 
     // INIT LED
     LEDS.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
@@ -235,6 +233,14 @@ void loop() {
 
     // HANDLE LED
     FastLED.show();
+}
+
+//############################################################################
+// ISRoutine
+//############################################################################
+
+void ISRoutine () {
+    mpuInterrupt = true;
 }
 
 //############################################################################
@@ -567,7 +573,7 @@ void tts(String text, String voice) {
         }
         Serial.println(query.c_str());
         HTTPClient http;
-        http.begin(TTS_PROXY_URL);
+        http.begin(espClient, TTS_PROXY_URL);
         http.setAuthorization(TTS_PROXY_USER, TTS_PROXY_PASSWORD);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
         int httpCode = http.POST(query);
