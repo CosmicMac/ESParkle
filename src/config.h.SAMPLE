@@ -4,14 +4,18 @@
 //############################################################################
 // ESPARKLE VERSION
 //############################################################################
-#define ESPARKLE_VERSION "1.0"
+
+#define ESPARKLE_VERSION "1.1"
 
 //############################################################################
 // WIFI
 //############################################################################
-#define ESP_NAME "ESParkle"                                                                     // ESP8266 host name
 
-const WifiAPEntry AP_LIST[] = {                                                                // Access points list
+// ESP8266 host name
+#define ESP_NAME "ESParkle"
+
+// Access points list
+const WifiAPEntry AP_LIST[] = {
     {"YOUR_SSID_1", "YOUR_PASSPHRASE_1"},
     {"YOUR_SSID_2", "YOUR_PASSPHRASE_2"},
     {"YOUR_SSID_3", "YOUR_PASSPHRASE_3"}
@@ -20,43 +24,52 @@ const WifiAPEntry AP_LIST[] = {                                                 
 //############################################################################
 // MQTT
 //############################################################################
+
 #define MQTT_HOST       "mXX.cloudmqtt.com"
 #define MQTT_PORT       12345
 #define MQTT_USER       "YOUR_MQTT_USER"
 #define MQTT_PASSWORD   "YOUR_MQTT_PASSWORD"
 #define MQTT_IN_TOPIC   "esparkle/in"
 #define MQTT_OUT_TOPIC  "esparkle/out"
+#define MQTT_BUFF_SIZE  1024
 
 //############################################################################
 // AUDIO
 //############################################################################
-#define RANDOM_STREAM_URL "http://www.dummyhost.net/esparkle/esparkle_mp3.php?action=random"    // URL of companion PHP script for random MP3
-#define TTS_PROXY_URL "http://www.dummyhost.net/esparkle/esparkle_tts.php"                      // URL of companion PHP script for TTS
-#define TTS_PROXY_USER "YOUR_TTS_PROXY_USER"                                                    // HTTP Basic authentication user name for TTS
-#define TTS_PROXY_PASSWORD "YOUR_TTS_PROXY_PASSWORD"                                            // HTTP Basic authentication password for TTS
 
-float defaultGain = .3;
+#define RANDOM_STREAM_URL   "http://www.dummyhost.net/esparkle/esparkle_mp3.php?action=random"  // URL of companion PHP script for random MP3
+#define TTS_PROXY_URL       "http://www.dummyhost.net/esparkle/esparkle_tts.php"                // URL of companion PHP script for TTS
+#define TTS_PROXY_USER      "YOUR_TTS_PROXY_USER"                                               // HTTP Basic authentication user name for TTS
+#define TTS_PROXY_PASSWORD  "YOUR_TTS_PROXY_PASSWORD"                                           // HTTP Basic authentication password for TTS
+
+float defaultGain =         .3;
 
 //############################################################################
 // LED
 //############################################################################
-#define COLOR_ORDER  GRB         // Set GRB for WS2812B and GBR for APA102
-#define LED_TYPE     WS2812B     // APA102, WS2801 or WS2812B
-#define NUM_LEDS     3           // Number of LEDs
-uint8_t max_bright = 128;        // Default overall brightness
+
+#define COLOR_ORDER     GRB         // Set GRB for WS2812B and GBR for APA102
+#define LED_TYPE        WS2812B     // APA102, WS2801 or WS2812B
+#define NUM_LEDS        7           // Number of LEDs
+uint8_t max_bright =    128;        // Default overall brightness
 
 //############################################################################
 // MPU
 //############################################################################
+
+// MPU sensitivity params
 #define MPU_INTERRUPT_INTERVAL_MS   750
 #define MPU_MULTITAP_INTERVAL_MS    2000
-#define MPU_MULTITAP_RESTART        5
 #define MOTION_DETECTION_THRESHOLD  10
 #define MOTION_DETECTION_DURATION   5
+
+// Number of taps to trigger ESP restart
+#define MPU_MULTITAP_RESTART        5
 
 //############################################################################
 // PINS
 //############################################################################
+
 /* --------+--------------+--------------------------------
  *  D1 pin   ESP-8266 pin   Function
  * --------+--------------+--------------------------------

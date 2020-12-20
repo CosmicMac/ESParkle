@@ -6,3 +6,5 @@
 .vscode/extensions.json
 src/config.h
 clean.bat
+config.h
+*.bak

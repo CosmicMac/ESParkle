@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <LITTLEFS.h>
 #include <ESP8266WiFiMulti.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -7,7 +8,7 @@
 #include <FastLED.h>
 #include <Ticker.h>
 #include <AudioFileSourceHTTPStream.h>
-#include <AudioFileSourceSPIFFS.h>
+#include <AudioFileSourceLittleFS.h>
 #include <AudioFileSourcePROGMEM.h>
 #include <AudioFileSourceBuffer.h>
 #include <AudioGeneratorRTTTL.h>
@@ -37,7 +38,7 @@ Ticker ledActionTimer;
 MPU6050 mpu;
 
 AudioFileSourceHTTPStream *stream = nullptr;
-AudioFileSourceSPIFFS *file = nullptr;
+AudioFileSourceLittleFS *file = nullptr;
 AudioFileSourceBuffer *buff = nullptr;
 AudioFileSourcePROGMEM *string = nullptr;
 AudioGeneratorMP3 *mp3 = nullptr;
@@ -50,9 +51,10 @@ AudioOutputI2S *out = nullptr;
 
 void setup() {
     Serial.begin(115200);
+    Serial.println();
 
-    // INIT SPIFFS
-    SPIFFS.begin();
+    // INIT LittleFS
+    LittleFS.begin();
 
     // INIT WIFI
     WiFi.hostname(ESP_NAME);
@@ -65,6 +67,7 @@ void setup() {
     // INIT MQTT
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCallback(mqttCallback);
+    mqttClient.setBufferSize(MQTT_BUFF_SIZE);
     mqttConnect(true);
 
     // INIT OTA
@@ -82,11 +85,16 @@ void setup() {
     });
     ArduinoOTA.onError([](ota_error_t error) {
         String msg;
-        if (error == OTA_AUTH_ERROR) msg = F("auth failed");
-        else if (error == OTA_BEGIN_ERROR) msg = F("begin failed");
-        else if (error == OTA_CONNECT_ERROR) msg = F("connect failed");
-        else if (error == OTA_RECEIVE_ERROR) msg = F("receive failed");
-        else if (error == OTA_END_ERROR) msg = F("end failed");
+        if (error == OTA_AUTH_ERROR)
+            msg = F("auth failed");
+        else if (error == OTA_BEGIN_ERROR)
+            msg = F("begin failed");
+        else if (error == OTA_CONNECT_ERROR)
+            msg = F("connect failed");
+        else if (error == OTA_RECEIVE_ERROR)
+            msg = F("receive failed");
+        else if (error == OTA_END_ERROR)
+            msg = F("end failed");
         Serial.printf_P(PSTR("Error: %s"), msg.c_str());
     });
     ArduinoOTA.begin();
@@ -95,7 +103,7 @@ void setup() {
     Wire.begin();
     Serial.println(F("Initializing MPU6050..."));
     mpu.initialize();
-    if(mpu.testConnection()) {
+    if (mpu.testConnection()) {
         Serial.println(F("MPU6050 connection successful"));
         mpu.setIntMotionEnabled(true);
         mpu.setMotionDetectionThreshold(MOTION_DETECTION_THRESHOLD);
@@ -110,6 +118,10 @@ void setup() {
     FastLED.setBrightness(max_bright);
     FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
     ledDefault();
+
+    // READY SOUND
+    strlcpy(audioSource, "/mp3/bullfrog.mp3", sizeof(audioSource));
+    newAudioSource = true;
 }
 
 //############################################################################
@@ -213,7 +225,6 @@ void loop() {
         }
     }
 
-
     // HANDLE MP3
     if (newAudioSource) {
         playAudio();
@@ -239,7 +250,7 @@ void loop() {
 // ISRoutine
 //############################################################################
 
-void ISRoutine () {
+void ISRoutine() {
     mpuInterrupt = true;
 }
 
@@ -287,20 +298,21 @@ bool mqttConnect(bool about) {
 
 void mqttCallback(char *topic, byte *payload, unsigned int length) {
 
-    StaticJsonBuffer<512> jsonInBuffer;
-    JsonObject &json = jsonInBuffer.parseObject(payload);
+    StaticJsonDocument<512> jsonInDoc;
+    DeserializationError err = deserializeJson(jsonInDoc, payload);
 
-    if (!json.success()) {
-        mqttClient.publish(MQTT_OUT_TOPIC, PSTR("{event:\"jsonInBuffer.parseObject(payload) failed\"}"));
+    if (err) {
+        mqttClient.publish(MQTT_OUT_TOPIC, PSTR("{event:\"deserializeJson(jsonInDoc, payload) failed\"}"));
+        mqttClient.publish(MQTT_OUT_TOPIC, err.c_str());
         return;
     }
 
-    json.printTo(Serial);
+    serializeJsonPretty(jsonInDoc, Serial);
     Serial.println();
 
     // Simple commands
-    if (json.containsKey("cmd")) {
-        if (strcmp("break", json["cmd"]) == 0) {            // Break current action: {cmd:"break"}
+    if (jsonInDoc.containsKey("cmd")) {
+        if (strcmp("break", jsonInDoc["cmd"]) == 0) { // Break current action: {cmd:"break"}
             stopPlaying();
             /*
             if (mp3 && mp3->isRunning()) {
@@ -313,36 +325,36 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
                 msgPriority = 0;
                 ledDefault();
             }
-        } else if (strcmp("restart", json["cmd"]) == 0) {   // Restart ESP: {cmd:"restart"}
+        } else if (strcmp("restart", jsonInDoc["cmd"]) == 0) { // Restart ESP: {cmd:"restart"}
             ESP.restart();
             delay(500);
-        } else if (strcmp("about", json["cmd"]) == 0) {     // About: {cmd:"about"}
+        } else if (strcmp("about", jsonInDoc["cmd"]) == 0) { // About: {cmd:"about"}
             mqttCmdAbout();
-        } else if (strcmp("list", json["cmd"]) == 0) {      // List SPIFFS files: {cmd:"list"}
+        } else if (strcmp("list", jsonInDoc["cmd"]) == 0) { // List LittleFS files: {cmd:"list"}
             mqttCmdList();
         }
         return;
     }
 
     // Set max brightness: {bright:255}
-    if (json.containsKey("bright")) {
-        uint8_t b = json["bright"].as<uint8_t>();
+    if (jsonInDoc.containsKey("bright")) {
+        uint8_t b = jsonInDoc["bright"].as<uint8_t>();
         if (b >= 0 && b <= 255) {
             FastLED.setBrightness(b);
         }
     }
 
     // Set default gain: {"gain":1.2}
-    if (json.containsKey("gain")) {
-        float g = json["gain"].as<float>();
+    if (jsonInDoc.containsKey("gain")) {
+        float g = jsonInDoc["gain"].as<float>();
         if (g > 0.01 && g < 3.0) {
             defaultGain = g;
         }
     }
 
     // Set once gain: {oncegain:1.2}
-    if (json.containsKey("oncegain")) {
-        float g = json["oncegain"].as<float>();
+    if (jsonInDoc.containsKey("oncegain")) {
+        float g = jsonInDoc["oncegain"].as<float>();
         if (g > 0.01 && g < 3.0) {
             onceGain = g;
         }
@@ -350,28 +362,28 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
 
     // Set new MP3 source
     // - from stream: {"mp3":"http://www.universal-soundbank.com/sounds/7340.mp3"}
-    // - from SPIFFS: {"mp3":"/mp3/song.mp3"}
-    if (json.containsKey("mp3")) {
-        strlcpy(audioSource, json["mp3"], sizeof(audioSource));
+    // - from LittleFS: {"mp3":"/mp3/song.mp3"}
+    if (jsonInDoc.containsKey("mp3")) {
+        strlcpy(audioSource, jsonInDoc["mp3"], sizeof(audioSource));
         newAudioSource = true;
     }
 
     // Set new MP3 source from TTS proxy {"tts":"May the force be with you"}
-    if (json.containsKey("tts")) {
-        tts(json["tts"], json.containsKey("voice") ? json["voice"] : String());
+    if (jsonInDoc.containsKey("tts")) {
+        tts(jsonInDoc["tts"], jsonInDoc.containsKey("voice") ? jsonInDoc["voice"] : String());
     }
 
     // Set new Rtttl source {"rtttl":"Xfiles:d=4,o=5,b=160:e,b,a,b,d6,2b."}
-    if (json.containsKey("rtttl")) {
-        strlcpy(audioSource, json["rtttl"], sizeof(audioSource));
+    if (jsonInDoc.containsKey("rtttl")) {
+        strlcpy(audioSource, jsonInDoc["rtttl"], sizeof(audioSource));
         newAudioSource = true;
     }
 
     // Set new message priority : {"led":"Blink",color:"0xff0000",delay:50,priority:9}
     // LED pattern is considered only if msg priority is >= to previous msg priority
     // This is to avoid masking an important LED alert with a minor one
-    if (json.containsKey("priority")) {
-        uint8_t thisPriority = json["priority"].as<uint8_t>();
+    if (jsonInDoc.containsKey("priority")) {
+        uint8_t thisPriority = jsonInDoc["priority"].as<uint8_t>();
         if (thisPriority < msgPriority) {
             return;
         }
@@ -379,36 +391,35 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     }
 
     // Set led pattern: {"led":"Blink",color:"0xff0000",delay:50}
-    if (json.containsKey("led")) {
+    if (jsonInDoc.containsKey("led")) {
         uint32_t d = 100;
-        if (json.containsKey("delay")) {
-            d = json["delay"].as<uint32_t>();
+        if (jsonInDoc.containsKey("delay")) {
+            d = jsonInDoc["delay"].as<uint32_t>();
         }
 
         int c = 0xFFFFFF;
-        if (json.containsKey("color")) {
-            c = (int) strtol(json["color"], nullptr, 0);
+        if (jsonInDoc.containsKey("color")) {
+            c = (int)strtol(jsonInDoc["color"], nullptr, 0);
         }
 
-        if (strcmp("Rainbow", json["led"]) == 0) {
+        if (strcmp("Rainbow", jsonInDoc["led"]) == 0) {
             ledRainbow(d);
-        } else if (strcmp("Blink", json["led"]) == 0) {
+        } else if (strcmp("Blink", jsonInDoc["led"]) == 0) {
             ledBlink(d, c);
-        } else if (strcmp("Sine", json["led"]) == 0) {
+        } else if (strcmp("Sine", jsonInDoc["led"]) == 0) {
             ledSine(d, c);
-        } else if (strcmp("Pulse", json["led"]) == 0) {
+        } else if (strcmp("Pulse", jsonInDoc["led"]) == 0) {
             ledPulse(d, c);
-        } else if (strcmp("Disco", json["led"]) == 0) {
+        } else if (strcmp("Disco", jsonInDoc["led"]) == 0) {
             ledDisco(d);
-        } else if (strcmp("Solid", json["led"]) == 0) {
+        } else if (strcmp("Solid", jsonInDoc["led"]) == 0) {
             ledSolid(c);
-        } else if (strcmp("Off", json["led"]) == 0) {
+        } else if (strcmp("Off", jsonInDoc["led"]) == 0) {
             ledOff();
         } else {
             ledDefault();
         }
     }
-
 }
 
 /**
@@ -433,27 +444,26 @@ void mqttCmdAbout() {
 
     Serial.println(F("Preparing about..."));
 
-    DynamicJsonBuffer jsonBuffer;
+    DynamicJsonDocument jsonDoc(1024);
 
-    JsonObject &jsonRoot = jsonBuffer.createObject();
-    jsonRoot[F("version")] = ESPARKLE_VERSION;
-    jsonRoot[F("sdkVersion")] = ESP.getSdkVersion();
-    jsonRoot[F("coreVersion")] = ESP.getCoreVersion();
-    jsonRoot[F("resetReason")] = ESP.getResetReason();
-    jsonRoot[F("ssid")] = WiFi.SSID();
-    jsonRoot[F("ip")] = WiFi.localIP().toString();
-    jsonRoot[F("staMac")] = WiFi.macAddress();
-    jsonRoot[F("apMac")] = WiFi.softAPmacAddress();
-    jsonRoot[F("chipId")] = String(ESP.getChipId(), HEX);
-    jsonRoot[F("chipSize")] = chipSize;
-    jsonRoot[F("sketchSize")] = sketchSize;
-    jsonRoot[F("freeSpace")] = freeSpace;
-    jsonRoot[F("freeHeap")] = freeHeap;
-    jsonRoot[F("uptime")] = uptimeBuffer;
-    jsonRoot[F("defaultGain")] = defaultGain;
+    jsonDoc[F("version")] = ESPARKLE_VERSION;
+    jsonDoc[F("sdkVersion")] = ESP.getSdkVersion();
+    jsonDoc[F("coreVersion")] = ESP.getCoreVersion();
+    jsonDoc[F("resetReason")] = ESP.getResetReason();
+    jsonDoc[F("ssid")] = WiFi.SSID();
+    jsonDoc[F("ip")] = WiFi.localIP().toString();
+    jsonDoc[F("staMac")] = WiFi.macAddress();
+    jsonDoc[F("apMac")] = WiFi.softAPmacAddress();
+    jsonDoc[F("chipId")] = String(ESP.getChipId(), HEX);
+    jsonDoc[F("chipSize")] = chipSize;
+    jsonDoc[F("sketchSize")] = sketchSize;
+    jsonDoc[F("freeSpace")] = freeSpace;
+    jsonDoc[F("freeHeap")] = freeHeap;
+    jsonDoc[F("uptime")] = uptimeBuffer;
+    jsonDoc[F("defaultGain")] = defaultGain;
 
     String mqttMsg;
-    jsonRoot.prettyPrintTo(mqttMsg);
+    serializeJsonPretty(jsonDoc, mqttMsg);
     Serial.println(mqttMsg.c_str());
 
     mqttClient.publish(MQTT_OUT_TOPIC, mqttMsg.c_str());
@@ -461,16 +471,17 @@ void mqttCmdAbout() {
 
 void mqttCmdList() {
 
-    DynamicJsonBuffer jsonBuffer;
-    JsonArray &array = jsonBuffer.createArray();
+    DynamicJsonDocument jsonDoc(1024);
 
-    Dir dir = SPIFFS.openDir("/");
+    JsonArray array = jsonDoc.to<JsonArray>();
+
+    Dir dir = LittleFS.openDir("/mp3");
     while (dir.next()) {
         array.add(dir.fileName());
     }
 
     String mqttMsg;
-    array.prettyPrintTo(mqttMsg);
+    serializeJsonPretty(jsonDoc, mqttMsg);
 
     mqttClient.publish(MQTT_OUT_TOPIC, mqttMsg.c_str());
 }
@@ -510,9 +521,9 @@ void playAudio() {
             stopPlaying();
         }
     } else if (strncmp("/mp3/", audioSource, 5) == 0) {
-        // Get MP3 from SPIFFS
+        // Get MP3 from LittleFS
         Serial.printf_P(PSTR("**MP3 file: %s\n"), audioSource);
-        file = new AudioFileSourceSPIFFS(audioSource);
+        file = new AudioFileSourceLittleFS(audioSource);
         mp3 = new AudioGeneratorMP3();
         mp3->begin(file, out);
         if (!mp3->isRunning()) {
@@ -627,7 +638,7 @@ void ledRainbow(uint32_t delay) {
         ledActionInProgress = true;
         static uint8_t hue = 0;
         fill_solid(leds, NUM_LEDS, CHSV(hue, 255, 255));
-        hue = ++hue % 255;
+        hue = (hue + 1) % 255;
     });
 }
 
@@ -690,7 +701,7 @@ void ledPulse(uint32_t delay, int color) {
         i = (i + 1) % 255;
 
         if (i == 0) {
-            blackCountdown = 750 / curDelay;    // Stay black during 750ms
+            blackCountdown = 750 / curDelay; // Stay black during 750ms
         }
     });
 }
@@ -727,8 +738,7 @@ void prettyBytes(uint32_t bytes, String &output) {
         count /= 1024;
     }
     if (count - floor(count) == 0.0) {
-        output = String((int) count) + suffixes[s];
-
+        output = String((int)count) + suffixes[s];
     } else {
         output = String(round(count * 10.0) / 10.0, 1) + suffixes[s];
     };
